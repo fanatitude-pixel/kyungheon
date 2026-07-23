@@ -54,14 +54,31 @@ body{
     position: relative;
 }
 
-/* 테마 토글 버튼 */
-.theme-toggle {
+/* 상단 컨트롤 영역 (언어 선택 & 테마 토글) */
+.header-controls {
     position: absolute;
     top: 20px;
     right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lang-select {
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+}
+
+.theme-toggle {
     background: none;
     border: none;
-    font-size: 22px;
+    font-size: 20px;
     cursor: pointer;
     padding: 0;
 }
@@ -74,8 +91,8 @@ body{
 h1{
     color: var(--text-primary);
     margin-bottom:10px;
-    margin-top: 10px;
-    font-size: 24px;
+    margin-top: 15px;
+    font-size: 22px;
 }
 
 p{
@@ -129,10 +146,11 @@ p{
 
 #fortune{
     margin-top:20px;
-    font-size:16px;
+    font-size:15px;
     font-weight:bold;
     color: var(--text-primary);
     min-height: 24px;
+    line-height: 1.4;
 }
 
 hr {
@@ -148,7 +166,7 @@ hr {
 }
 
 .comment-section h3 {
-    font-size: 16px;
+    font-size: 15px;
     color: var(--text-primary);
     margin-bottom: 12px;
 }
@@ -167,7 +185,7 @@ hr {
     background: var(--input-bg);
     color: var(--text-primary);
     outline: none;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .comment-btn {
@@ -178,7 +196,8 @@ hr {
     border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 13px;
+    white-space: nowrap;
 }
 
 .comment-btn:hover {
@@ -216,6 +235,7 @@ hr {
     cursor: pointer;
     font-size: 12px;
     opacity: 0.7;
+    white-space: nowrap;
 }
 
 .delete-btn:hover {
@@ -229,12 +249,20 @@ hr {
 <body>
 
 <div class="container">
-    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+    <!-- 컨트롤 영역 (언어 선택 & 테마 스위치) -->
+    <div class="header-controls">
+        <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
+            <option value="ko">🇰🇷 한국어</option>
+            <option value="en">🇺🇸 English</option>
+            <option value="fr">🇫🇷 Français</option>
+        </select>
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+    </div>
 
-    <h1>🍀 오늘의 기운 좋은 번호</h1>
-    <p>버튼을 눌러 오늘의 행운 번호를 받아보세요!</p>
+    <h1 id="title">🍀 오늘의 기운 좋은 번호</h1>
+    <p id="subTitle">버튼을 눌러 오늘의 행운 번호를 받아보세요!</p>
 
-    <button class="gen-btn" onclick="generate()">번호 추천받기</button>
+    <button class="gen-btn" id="genBtn" onclick="generate()">번호 추천받기</button>
 
     <div id="numbers"></div>
     <div id="fortune"></div>
@@ -243,37 +271,116 @@ hr {
 
     <!-- 댓글 기능 영역 -->
     <div class="comment-section">
-        <h3>💬 행운의 한마디 (댓글)</h3>
+        <h3 id="commentHeader">💬 행운의 한마디 (댓글)</h3>
         <div class="comment-form">
             <input type="text" id="commentInput" class="comment-input" placeholder="오늘의 다짐이나 소원을 적어보세요..." onkeyup="if(event.key==='Enter') addComment()">
-            <button class="comment-btn" onclick="addComment()">등록</button>
+            <button class="comment-btn" id="commentBtn" onclick="addComment()">등록</button>
         </div>
         <div class="comment-list" id="commentList"></div>
     </div>
 </div>
 
 <script>
-const fortunes = [
-    "✨ 오늘은 새로운 도전이 좋은 결과를 가져올 수 있어요.",
-    "🍀 뜻밖의 행운이 찾아올 가능성이 있습니다.",
-    "💰 금전운이 상승하는 하루입니다.",
-    "❤️ 좋은 인연이나 반가운 소식을 기대해보세요.",
-    "🌈 꾸준히 노력한 일이 결실을 맺을 수 있습니다.",
-    "⭐ 자신감을 가지면 좋은 기회가 찾아옵니다.",
-    "☀️ 긍정적인 마음이 행운을 끌어당깁니다.",
-    "🎉 오늘은 웃을 일이 생길 가능성이 높아요!"
-];
+// ----------------------------------------------------
+// 언어별 텍스트 및 운세 데이터
+// ----------------------------------------------------
+const i18n = {
+    ko: {
+        title: "🍀 오늘의 기운 좋은 번호",
+        subTitle: "버튼을 눌러 오늘의 행운 번호를 받아보세요!",
+        genBtn: "번호 추천받기",
+        commentHeader: "💬 행운의 한마디 (댓글)",
+        commentPlaceholder: "오늘의 다짐이나 소원을 적어보세요...",
+        commentBtn: "등록",
+        deleteBtn: "삭제",
+        fortunes: [
+            "✨ 오늘은 새로운 도전이 좋은 결과를 가져올 수 있어요.",
+            "🍀 뜻밖의 행운이 찾아올 가능성이 있습니다.",
+            "💰 금전운이 상승하는 하루입니다.",
+            "❤️ 좋은 인연이나 반가운 소식을 기대해보세요.",
+            "🌈 꾸준히 노력한 일이 결실을 맺을 수 있습니다.",
+            "⭐ 자신감을 가지면 좋은 기회가 찾아옵니다.",
+            "☀️ 긍정적인 마음이 행운을 끌어당깁니다.",
+            "🎉 오늘은 웃을 일이 생길 가능성이 높아요!"
+        ]
+    },
+    en: {
+        title: "🍀 Lucky Numbers for Today",
+        subTitle: "Click the button to get your lucky numbers!",
+        genBtn: "Get Numbers",
+        commentHeader: "💬 Lucky Comments",
+        commentPlaceholder: "Write a wish or goal for today...",
+        commentBtn: "Post",
+        deleteBtn: "Delete",
+        fortunes: [
+            "✨ Taking on a new challenge today could bring great results.",
+            "🍀 Unexpected good fortune might come your way.",
+            "💰 Your financial luck is on the rise today.",
+            "❤️ Look forward to good connections or welcome news.",
+            "🌈 Consistent effort will soon bear fruit.",
+            "⭐ Have confidence, and great opportunities will present themselves.",
+            "☀️ A positive mindset attracts good luck.",
+            "🎉 High chance of having something to smile about today!"
+        ]
+    },
+    fr: {
+        title: "🍀 Vos Numéros Chance du Jour",
+        subTitle: "Cliquez sur le bouton pour recevoir vos numéros de chance !",
+        genBtn: "Obtenir les numéros",
+        commentHeader: "💬 Commentaires de Chance",
+        commentPlaceholder: "Écrivez un vœu ou un objectif pour aujourd'hui...",
+        commentBtn: "Publier",
+        deleteBtn: "Supprimer",
+        fortunes: [
+            "✨ Relever un nouveau défi aujourd'hui pourrait apporter de grands résultats.",
+            "🍀 Une bonne fortune inattendue pourrait croiser votre chemin.",
+            "💰 Votre chance financière est en hausse aujourd'hui.",
+            "❤️ Attendez-vous à de belles rencontres ou à de bonnes nouvelles.",
+            "🌈 Des efforts constants porteront bientôt leurs fruits.",
+            "⭐ Ayez confiance en vous, de grandes opportunités se présenteront.",
+            "☀️ Un état d'esprit positif attire la bonne fortune.",
+            "🎉 De fortes chances d'avoir une raison de sourire aujourd'hui !"
+        ]
+    }
+};
 
-const colors = [
-    "#ff595e",
-    "#ffca3a",
-    "#8ac926",
-    "#1982c4",
-    "#6a4c93",
-    "#ff7f50"
-];
+const colors = ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93", "#ff7f50"];
+let currentLang = "ko";
 
-// 로또 번호 생성
+// ----------------------------------------------------
+// 1. 다국어 전환 로직
+// ----------------------------------------------------
+function changeLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem("lang", lang);
+
+    const t = i18n[lang];
+    document.getElementById("title").innerText = t.title;
+    document.getElementById("subTitle").innerText = t.subTitle;
+    document.getElementById("genBtn").innerText = t.genBtn;
+    document.getElementById("commentHeader").innerText = t.commentHeader;
+    document.getElementById("commentInput").placeholder = t.commentPlaceholder;
+    document.getElementById("commentBtn").innerText = t.commentBtn;
+    document.getElementById("langSelect").value = lang;
+
+    // 운세 메시지가 찍혀있었다면 해당 언어로 갱신
+    const fortuneEl = document.getElementById("fortune");
+    if (fortuneEl.innerText) {
+        const randomIndex = Math.floor(Math.random() * t.fortunes.length);
+        fortuneEl.innerText = t.fortunes[randomIndex];
+    }
+
+    loadComments(); // 댓글 삭제 버튼 언어 업데이트
+}
+
+function initLanguage() {
+    const savedLang = localStorage.getItem("lang") || "ko";
+    changeLanguage(savedLang);
+}
+
+// ----------------------------------------------------
+// 2. 로또 번호 및 운세 생성
+// ----------------------------------------------------
 function generate(){
     let nums = [];
     while(nums.length < 6){
@@ -295,12 +402,13 @@ function generate(){
         box.appendChild(div);
     });
 
-    const msg = fortunes[Math.floor(Math.random() * fortunes.length)];
-    document.getElementById("fortune").innerHTML = msg;
+    const currentFortunes = i18n[currentLang].fortunes;
+    const msg = currentFortunes[Math.floor(Math.random() * currentFortunes.length)];
+    document.getElementById("fortune").innerText = msg;
 }
 
 // ----------------------------------------------------
-// 1. 다크 / 라이트 모드 전환 로직
+// 3. 다크 / 라이트 모드 전환 로직
 // ----------------------------------------------------
 function initTheme() {
     const savedTheme = localStorage.getItem("theme") || "light";
@@ -318,7 +426,7 @@ function toggleTheme() {
 }
 
 // ----------------------------------------------------
-// 2. 댓글 작성 및 삭제 로직 (LocalStorage 저장)
+// 4. 댓글 기능 로직 (LocalStorage)
 // ----------------------------------------------------
 function loadComments() {
     const comments = JSON.parse(localStorage.getItem("lottoComments") || "[]");
@@ -330,7 +438,7 @@ function loadComments() {
         item.className = "comment-item";
         item.innerHTML = `
             <span>${escapeHtml(comment)}</span>
-            <button class="delete-btn" onclick="deleteComment(${index})">삭제</button>
+            <button class="delete-btn" onclick="deleteComment(${index})">${i18n[currentLang].deleteBtn}</button>
         `;
         listEl.appendChild(item);
     });
@@ -343,7 +451,7 @@ function addComment() {
     if (!text) return;
 
     const comments = JSON.parse(localStorage.getItem("lottoComments") || "[]");
-    comments.unshift(text); // 최신 댓글이 위에 오도록 추가
+    comments.unshift(text);
     localStorage.setItem("lottoComments", JSON.stringify(comments));
 
     input.value = "";
@@ -357,14 +465,13 @@ function deleteComment(index) {
     loadComments();
 }
 
-// XSS 방지용 태그 변환
 function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// 초기화 실행
+// 페이지 로드 시 초기화 실행
 initTheme();
-loadComments();
+initLanguage();
 </script>
 
 </body>
