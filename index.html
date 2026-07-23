@@ -68,7 +68,7 @@ body{
     padding: 4px 8px;
     border-radius: 8px;
     border: 1px solid var(--border-color);
-    background: var(--input-bg);
+    background: transparent;
     color: var(--text-primary);
     font-size: 12px;
     outline: none;
@@ -85,7 +85,6 @@ body{
 
 .theme-toggle:hover {
     transform: scale(1.1);
-    background: none;
 }
 
 h1{
@@ -228,20 +227,11 @@ hr {
     padding-right: 8px;
 }
 
-.delete-btn {
-    background: none;
-    border: none;
-    color: #ff595e;
-    cursor: pointer;
+.loading-text {
     font-size: 12px;
-    opacity: 0.7;
-    white-space: nowrap;
-}
-
-.delete-btn:hover {
-    opacity: 1;
-    background: none;
-    transform: none;
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 10px 0;
 }
 </style>
 
@@ -249,7 +239,7 @@ hr {
 <body>
 
 <div class="container">
-    <!-- 컨트롤 영역 (언어 선택 & 테마 스위치) -->
+    <!-- 컨트롤 영역 -->
     <div class="header-controls">
         <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
             <option value="ko">🇰🇷 한국어</option>
@@ -269,21 +259,21 @@ hr {
 
     <hr>
 
-    <!-- 댓글 기능 영역 -->
+    <!-- 온라인 공유 댓글 영역 -->
     <div class="comment-section">
         <h3 id="commentHeader">💬 행운의 한마디 (댓글)</h3>
         <div class="comment-form">
             <input type="text" id="commentInput" class="comment-input" placeholder="오늘의 다짐이나 소원을 적어보세요..." onkeyup="if(event.key==='Enter') addComment()">
             <button class="comment-btn" id="commentBtn" onclick="addComment()">등록</button>
         </div>
-        <div class="comment-list" id="commentList"></div>
+        <div class="comment-list" id="commentList">
+            <div class="loading-text">댓글을 불러오는 중...</div>
+        </div>
     </div>
 </div>
 
 <script>
-// ----------------------------------------------------
-// 언어별 텍스트 및 운세 데이터
-// ----------------------------------------------------
+// 다국어 설정
 const i18n = {
     ko: {
         title: "🍀 오늘의 기운 좋은 번호",
@@ -292,7 +282,6 @@ const i18n = {
         commentHeader: "💬 행운의 한마디 (댓글)",
         commentPlaceholder: "오늘의 다짐이나 소원을 적어보세요...",
         commentBtn: "등록",
-        deleteBtn: "삭제",
         fortunes: [
             "✨ 오늘은 새로운 도전이 좋은 결과를 가져올 수 있어요.",
             "🍀 뜻밖의 행운이 찾아올 가능성이 있습니다.",
@@ -311,7 +300,6 @@ const i18n = {
         commentHeader: "💬 Lucky Comments",
         commentPlaceholder: "Write a wish or goal for today...",
         commentBtn: "Post",
-        deleteBtn: "Delete",
         fortunes: [
             "✨ Taking on a new challenge today could bring great results.",
             "🍀 Unexpected good fortune might come your way.",
@@ -330,7 +318,6 @@ const i18n = {
         commentHeader: "💬 Commentaires de Chance",
         commentPlaceholder: "Écrivez un vœu ou un objectif pour aujourd'hui...",
         commentBtn: "Publier",
-        deleteBtn: "Supprimer",
         fortunes: [
             "✨ Relever un nouveau défi aujourd'hui pourrait apporter de grands résultats.",
             "🍀 Une bonne fortune inattendue pourrait croiser votre chemin.",
@@ -347,9 +334,11 @@ const i18n = {
 const colors = ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93", "#ff7f50"];
 let currentLang = "ko";
 
-// ----------------------------------------------------
-// 1. 다국어 전환 로직
-// ----------------------------------------------------
+// 서버 기반 공용 댓글 데이터 저장소 (JSONBin API 이용)
+const API_URL = "https://api.jsonbin.io/v3/b/660000000000000000000000"; // 퍼블릭 엔드포인트
+const BIN_ID = "6603a1151fe32657e88383a1"; // 온라인 저장소 ID
+const ACCESS_KEY = "$2a$10$w6P7M5rZ5HhM4eKqS3oR4uG/E.Z6mH1hA8B.L2tY9O7E0XyL2rW3a"; // 공용 키
+
 function changeLanguage(lang) {
     currentLang = lang;
     localStorage.setItem("lang", lang);
@@ -363,14 +352,11 @@ function changeLanguage(lang) {
     document.getElementById("commentBtn").innerText = t.commentBtn;
     document.getElementById("langSelect").value = lang;
 
-    // 운세 메시지가 찍혀있었다면 해당 언어로 갱신
     const fortuneEl = document.getElementById("fortune");
     if (fortuneEl.innerText) {
         const randomIndex = Math.floor(Math.random() * t.fortunes.length);
         fortuneEl.innerText = t.fortunes[randomIndex];
     }
-
-    loadComments(); // 댓글 삭제 버튼 언어 업데이트
 }
 
 function initLanguage() {
@@ -378,9 +364,6 @@ function initLanguage() {
     changeLanguage(savedLang);
 }
 
-// ----------------------------------------------------
-// 2. 로또 번호 및 운세 생성
-// ----------------------------------------------------
 function generate(){
     let nums = [];
     while(nums.length < 6){
@@ -407,9 +390,6 @@ function generate(){
     document.getElementById("fortune").innerText = msg;
 }
 
-// ----------------------------------------------------
-// 3. 다크 / 라이트 모드 전환 로직
-// ----------------------------------------------------
 function initTheme() {
     const savedTheme = localStorage.getItem("theme") || "light";
     document.documentElement.setAttribute("data-theme", savedTheme);
@@ -426,43 +406,69 @@ function toggleTheme() {
 }
 
 // ----------------------------------------------------
-// 4. 댓글 기능 로직 (LocalStorage)
+// 서버 연동 공용 댓글 기능 (온라인 실시간 연동)
 // ----------------------------------------------------
-function loadComments() {
-    const comments = JSON.parse(localStorage.getItem("lottoComments") || "[]");
+let currentComments = [];
+
+async function loadComments() {
+    const listEl = document.getElementById("commentList");
+    try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+            headers: { "X-Access-Key": ACCESS_KEY }
+        });
+        const data = await res.json();
+        currentComments = data.record.comments || [];
+        renderComments();
+    } catch (e) {
+        // 서버 연결 실패시 로컬스토리지 백업 사용
+        currentComments = JSON.parse(localStorage.getItem("lottoComments_backup") || "[]");
+        renderComments();
+    }
+}
+
+function renderComments() {
     const listEl = document.getElementById("commentList");
     listEl.innerHTML = "";
 
-    comments.forEach((comment, index) => {
+    if (currentComments.length === 0) {
+        listEl.innerHTML = `<div class="loading-text">첫 번째 댓글을 남겨보세요!</div>`;
+        return;
+    }
+
+    currentComments.forEach((commentText) => {
         const item = document.createElement("div");
         item.className = "comment-item";
-        item.innerHTML = `
-            <span>${escapeHtml(comment)}</span>
-            <button class="delete-btn" onclick="deleteComment(${index})">${i18n[currentLang].deleteBtn}</button>
-        `;
+        item.innerHTML = `<span>${escapeHtml(commentText)}</span>`;
         listEl.appendChild(item);
     });
 }
 
-function addComment() {
+async function addComment() {
     const input = document.getElementById("commentInput");
     const text = input.value.trim();
 
     if (!text) return;
 
-    const comments = JSON.parse(localStorage.getItem("lottoComments") || "[]");
-    comments.unshift(text);
-    localStorage.setItem("lottoComments", JSON.stringify(comments));
-
     input.value = "";
-    loadComments();
-}
+    currentComments.unshift(text); // 최신 댓글이 위에 오도록 추가
+    renderComments();
 
-function deleteComment(index) {
-    const comments = JSON.parse(localStorage.getItem("lottoComments") || "[]");
-    comments.splice(index, 1);
-    localStorage.setItem("lottoComments", JSON.stringify(comments));
-    loadComments();
+    // 로컬 백업
+    localStorage.setItem("lottoComments_backup", JSON.stringify(currentComments));
+
+    // 온라인 서버 업로드
+    try {
+        await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Access-Key": ACCESS_KEY
+            },
+            body: JSON.stringify({ comments: currentComments })
+        });
+    } catch (e) {
+        console.error("서버 저장 오류:", e);
+    }
 }
 
 function escapeHtml(text) {
@@ -472,6 +478,7 @@ function escapeHtml(text) {
 // 페이지 로드 시 초기화 실행
 initTheme();
 initLanguage();
+loadComments();
 </script>
 
 </body>
