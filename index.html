@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍀 오늘의 기운 좋은 번호</title>
+
+<style>
+:root {
+    --bg-gradient: linear-gradient(135deg, #4facfe, #00f2fe);
+    --card-bg: #ffffff;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --input-bg: #f5f7fa;
+    --border-color: #eee;
+    --comment-bg: #f8f9fa;
+}
+
+[data-theme="dark"] {
+    --bg-gradient: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    --card-bg: #1e1e2f;
+    --text-primary: #f0f0f0;
+    --text-secondary: #aaa;
+    --input-bg: #2d2d44;
+    --border-color: #33334d;
+    --comment-bg: #28283e;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:"Pretendard", sans-serif;
+    transition: background 0.3s, color 0.3s;
+}
+
+body{
+    background: var(--bg-gradient);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    padding: 20px;
+}
+
+.container{
+    width:100%;
+    max-width:440px;
+    background: var(--card-bg);
+    border-radius:20px;
+    padding:30px 25px;
+    text-align:center;
+    box-shadow:0 15px 35px rgba(0,0,0,.2);
+    position: relative;
+}
+
+/* 테마 토글 버튼 */
+.theme-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    background: none;
+}
+
+h1{
+    color: var(--text-primary);
+    margin-bottom:10px;
+    margin-top: 10px;
+    font-size: 24px;
+}
+
+p{
+    color: var(--text-secondary);
+    margin-bottom:20px;
+    font-size: 14px;
+}
+
+.gen-btn{
+    background:#4facfe;
+    color:white;
+    border:none;
+    padding:12px 25px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:16px;
+    font-weight: bold;
+    transition:.3s;
+}
+
+.gen-btn:hover{
+    background:#008cff;
+    transform:scale(1.03);
+}
+
+#numbers{
+    margin-top:25px;
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+.ball{
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:white;
+    font-weight:bold;
+    font-size:18px;
+    animation:pop .4s ease;
+}
+
+@keyframes pop{
+    from{ transform:scale(0); opacity:0; }
+    to{ transform:scale(1); opacity:1; }
+}
+
+#fortune{
+    margin-top:20px;
+    font-size:16px;
+    font-weight:bold;
+    color: var(--text-primary);
+    min-height: 24px;
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background: var(--border-color);
+    margin: 25px 0;
+}
+
+/* 댓글 영역 스타일 */
+.comment-section {
+    text-align: left;
+}
+
+.comment-section h3 {
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.comment-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.comment-input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    outline: none;
+    font-size: 14px;
+}
+
+.comment-btn {
+    background: #00b4d8;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.comment-btn:hover {
+    background: #0096c7;
+}
+
+.comment-list {
+    max-height: 180px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.comment-item {
+    background: var(--comment-bg);
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.comment-item span {
+    word-break: break-all;
+    padding-right: 8px;
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    color: #ff595e;
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.delete-btn:hover {
+    opacity: 1;
+    background: none;
+    transform: none;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+
+    <h1>🍀 오늘의 기운 좋은 번호</h1>
+    <p>버튼을 눌러 오늘의 행운 번호를 받아보세요!</p>
+
+    <button class="gen-btn" onclick="generate()">번호 추천받기</button>
+
+    <div id="numbers"></div>
+    <div id="fortune"></div>
+
+    <hr>
+
+    <!-- 댓글 기능 영역 -->
+    <div class="comment-section">
+        <h3>💬 행운의 한마디 (댓글)</h3>
+        <div class="comment-form">
+            <input type="text" id="commentInput" class="comment-input" placeholder="오늘의 다짐이나 소원을 적어보세요..." onkeyup="if(event.key==='Enter') addComment()">
+            <button class="comment-btn" onclick="addComment()">등록</button>
+        </div>
+        <div class="comment-list" id="commentList"></div>
+    </div>
+</div>
+
+<script>
+const fortunes = [
+    "✨ 오늘은 새로운 도전이 좋은 결과를 가져올 수 있어요.",
+    "🍀 뜻밖의 행운이 찾아올 가능성이 있습니다.",
+    "💰 금전운이 상승하는 하루입니다.",
+    "❤️ 좋은 인연이나 반가운 소식을 기대해보세요.",
+    "🌈 꾸준히 노력한 일이 결실을 맺을 수 있습니다.",
+    "⭐ 자신감을 가지면 좋은 기회가 찾아옵니다.",
+    "☀️ 긍정적인 마음이 행운을 끌어당깁니다.",
+    "🎉 오늘은 웃을 일이 생길 가능성이 높아요!"
+];
+
+const colors = [
+    "#ff595e",
+    "#ffca3a",
+    "#8ac926",
+    "#1982c4",
+    "#6a4c93",
+    "#ff7f50"
+];
+
+// 로또 번호 생성
+function generate(){
+    let nums = [];
+    while(nums.length < 6){
+        let n = Math.floor(Math.random() * 45) + 1;
+        if(!nums.includes(n)){
+            nums.push(n);
+        }
+    }
+    nums.sort((a,b) => a - b);
+
+    const box = document.getElementById("numbers");
+    box.innerHTML = "";
+
+    nums.forEach((num, index) => {
+        const div = document.createElement("div");
+        div.className = "ball";
+        div.style.background = colors[index];
+        div.innerText = num;
+        box.appendChild(div);
+    });
+
+    const msg = fortunes[Math.floor(Math.random() * fortunes.length)];
+    document.getElementById("fortune").innerHTML = msg;
+}
+
+// ----------------------------------------------------
+// 1. 다크 / 라이트 모드 전환 로직
+// ----------------------------------------------------
+function initTheme() {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+    document.getElementById("themeBtn").innerText = savedTheme === "dark" ? "☀️" : "🌙";
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute("data-theme");
+    const newTheme = currentTheme === "dark" ? "light" : "dark";
+    
+    document.documentElement.setAttribute("data-theme", newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.getElementById("themeBtn").innerText = newTheme === "dark" ? "☀️" : "🌙";
+}
+
+// ----------------------------------------------------
+// 2. 댓글 작성 및 삭제 로직 (LocalStorage 저장)
+// ----------------------------------------------------
+function loadComments() {
+    const comments = JSON.parse(localStorage.getItem("lottoComments") || "[]");
+    const listEl = document.getElementById("commentList");
+    listEl.innerHTML = "";
+
+    comments.forEach((comment, index) => {
+        const item = document.createElement("div");
+        item.className = "comment-item";
+        item.innerHTML = `
+            <span>${escapeHtml(comment)}</span>
+            <button class="delete-btn" onclick="deleteComment(${index})">삭제</button>
+        `;
+        listEl.appendChild(item);
+    });
+}
+
+function addComment() {
+    const input = document.getElementById("commentInput");
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    const comments = JSON.parse(localStorage.getItem("lottoComments") || "[]");
+    comments.unshift(text); // 최신 댓글이 위에 오도록 추가
+    localStorage.setItem("lottoComments", JSON.stringify(comments));
+
+    input.value = "";
+    loadComments();
+}
+
+function deleteComment(index) {
+    const comments = JSON.parse(localStorage.getItem("lottoComments") || "[]");
+    comments.splice(index, 1);
+    localStorage.setItem("lottoComments", JSON.stringify(comments));
+    loadComments();
+}
+
+// XSS 방지용 태그 변환
+function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// 초기화 실행
+initTheme();
+loadComments();
+</script>
+
+</body>
+</html>
