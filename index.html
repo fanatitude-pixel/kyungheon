@@ -1,485 +1,1100 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🍀 오늘의 기운 좋은 번호</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ 가챠 아레나 · Gacha Arena</title>
 
-<style>
-:root {
-    --bg-gradient: linear-gradient(135deg, #4facfe, #00f2fe);
-    --card-bg: #ffffff;
-    --text-primary: #333333;
-    --text-secondary: #666666;
-    --input-bg: #f5f7fa;
-    --border-color: #eee;
-    --comment-bg: #f8f9fa;
-}
+    <!-- canvas-confetti (5성 효과) -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1">
+    </script>
 
-[data-theme="dark"] {
-    --bg-gradient: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-    --card-bg: #1e1e2f;
-    --text-primary: #f0f0f0;
-    --text-secondary: #aaa;
-    --input-bg: #2d2d44;
-    --border-color: #33334d;
-    --comment-bg: #28283e;
-}
+    <!-- Firebase App & Database (댓글 기능) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js">
+    </script>
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:"Pretendard", sans-serif;
-    transition: background 0.3s, color 0.3s;
-}
+    <style>
+        /* ========== CSS 변수 (라이트 모드) ========== */
+        :root {
+            --bg: #f5f0ff;
+            --card-bg: #ffffff;
+            --text: #2d1b4e;
+            --subtext: #5a4a7a;
+            --accent: #9b6bff;
+            --accent2: #ff8cba;
+            --shadow: rgba(155, 107, 255, 0.15);
+            --border: #e0d6f2;
+            --star-color: #f5c542;
+            --btn-primary: #9b6bff;
+            --btn-hover: #7f4fd8;
+            --comment-bg: #f9f6ff;
+            --input-bg: #ffffff;
+            --header-bg: rgba(255, 255, 255, 0.75);
+            --badge-1: #b0b0b0;
+            --badge-2: #6db36d;
+            --badge-3: #4a9eff;
+            --badge-4: #b266ff;
+            --badge-5: #ff8c4a;
+        }
 
-body{
-    background: var(--bg-gradient);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
-    padding: 20px;
-}
+        /* ========== 다크 모드 ========== */
+        [data-theme="dark"] {
+            --bg: #1a1028;
+            --card-bg: #2a1d3e;
+            --text: #f0e6ff;
+            --subtext: #c0b0d8;
+            --accent: #b388ff;
+            --accent2: #ff6f9e;
+            --shadow: rgba(179, 136, 255, 0.2);
+            --border: #3f2d5a;
+            --star-color: #ffd966;
+            --btn-primary: #b388ff;
+            --btn-hover: #9068e0;
+            --comment-bg: #221835;
+            --input-bg: #2a1d3e;
+            --header-bg: rgba(26, 16, 40, 0.85);
+            --badge-1: #7a7a7a;
+            --badge-2: #4f8f4f;
+            --badge-3: #3a7ad4;
+            --badge-4: #8f4fcf;
+            --badge-5: #d97a3a;
+        }
 
-.container{
-    width:100%;
-    max-width:440px;
-    background: var(--card-bg);
-    border-radius:20px;
-    padding:30px 25px;
-    text-align:center;
-    box-shadow:0 15px 35px rgba(0,0,0,.2);
-    position: relative;
-}
+        /* ========== 글로벌 ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+        }
 
-/* 상단 컨트롤 영역 (언어 선택 & 테마 토글) */
-.header-controls {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: background 0.4s ease, color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 16px 40px;
+        }
 
-.lang-select {
-    padding: 4px 8px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: transparent;
-    color: var(--text-primary);
-    font-size: 12px;
-    outline: none;
-    cursor: pointer;
-}
+        /* ========== 헤더 ========== */
+        .header {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--header-bg);
+            backdrop-filter: blur(8px);
+            border-radius: 60px;
+            box-shadow: 0 8px 32px var(--shadow);
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
 
-.theme-toggle {
-    background: none;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0;
-}
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+        .logo span {
+            font-size: 1.2rem;
+            -webkit-text-fill-color: var(--accent2);
+        }
 
-.theme-toggle:hover {
-    transform: scale(1.1);
-}
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
 
-h1{
-    color: var(--text-primary);
-    margin-bottom:10px;
-    margin-top: 15px;
-    font-size: 22px;
-}
+        .lang-select {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            outline: none;
+            transition: 0.2s;
+        }
+        .lang-select:hover {
+            border-color: var(--accent);
+        }
 
-p{
-    color: var(--text-secondary);
-    margin-bottom:20px;
-    font-size: 14px;
-}
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.3rem;
+            transition: 0.25s;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+        .theme-toggle:hover {
+            transform: scale(1.05);
+            border-color: var(--accent);
+        }
 
-.gen-btn{
-    background:#4facfe;
-    color:white;
-    border:none;
-    padding:12px 25px;
-    border-radius:10px;
-    cursor:pointer;
-    font-size:16px;
-    font-weight: bold;
-    transition:.3s;
-}
+        /* ========== 메인 ========== */
+        .main-container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
 
-.gen-btn:hover{
-    background:#008cff;
-    transform:scale(1.03);
-}
+        /* ========== 뽑기 버튼 영역 ========== */
+        .gacha-actions {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
 
-#numbers{
-    margin-top:25px;
-    display:flex;
-    justify-content:center;
-    flex-wrap:wrap;
-    gap:10px;
-}
+        .btn-gacha {
+            padding: 14px 36px;
+            border: none;
+            border-radius: 60px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, var(--btn-primary), var(--accent2));
+            box-shadow: 0 8px 24px var(--shadow);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            min-width: 140px;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-gacha::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
+            opacity: 0;
+            transition: 0.5s;
+        }
+        .btn-gacha:hover::after {
+            opacity: 1;
+        }
+        .btn-gacha:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 12px 32px var(--shadow);
+        }
+        .btn-gacha:active {
+            transform: scale(0.96);
+        }
+        .btn-gacha.secondary {
+            background: var(--card-bg);
+            color: var(--text);
+            border: 2px solid var(--accent);
+            box-shadow: none;
+        }
+        .btn-gacha.secondary:hover {
+            background: var(--accent);
+            color: #fff;
+        }
 
-.ball{
-    width:50px;
-    height:50px;
-    border-radius:50%;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    color:white;
-    font-weight:bold;
-    font-size:18px;
-    animation:pop .4s ease;
-}
+        /* ========== 카드 결과 영역 ========== */
+        .result-area {
+            min-height: 200px;
+            background: var(--card-bg);
+            border-radius: 32px;
+            padding: 24px 18px;
+            box-shadow: 0 12px 48px var(--shadow);
+            border: 1px solid var(--border);
+            transition: 0.3s;
+        }
 
-@keyframes pop{
-    from{ transform:scale(0); opacity:0; }
-    to{ transform:scale(1); opacity:1; }
-}
+        .result-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--subtext);
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .result-title span {
+            background: var(--accent);
+            color: #fff;
+            padding: 2px 14px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+        }
 
-#fortune{
-    margin-top:20px;
-    font-size:15px;
-    font-weight:bold;
-    color: var(--text-primary);
-    min-height: 24px;
-    line-height: 1.4;
-}
+        .cards-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            perspective: 1000px;
+        }
 
-hr {
-    border: 0;
-    height: 1px;
-    background: var(--border-color);
-    margin: 25px 0;
-}
+        /* ========== 개별 카드 ========== */
+        .gacha-card {
+            width: 110px;
+            height: 160px;
+            border-radius: 18px;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            box-shadow: 0 4px 16px var(--shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: transform 0.5s ease, box-shadow 0.4s;
+            transform-style: preserve-3d;
+            cursor: default;
+            overflow: hidden;
+        }
 
-/* 댓글 영역 스타일 */
-.comment-section {
-    text-align: left;
-}
+        /* 카드 뒤집기 애니메이션 */
+        .gacha-card.flipping {
+            animation: cardFlip 0.7s ease forwards;
+        }
 
-.comment-section h3 {
-    font-size: 15px;
-    color: var(--text-primary);
-    margin-bottom: 12px;
-}
+        @keyframes cardFlip {
+            0% {
+                transform: rotateY(0deg) scale(1);
+            }
+            40% {
+                transform: rotateY(90deg) scale(0.95);
+            }
+            70% {
+                transform: rotateY(-20deg) scale(1.02);
+            }
+            100% {
+                transform: rotateY(0deg) scale(1);
+            }
+        }
 
-.comment-form {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 15px;
-}
+        .gacha-card .star-badge {
+            font-size: 1.8rem;
+            line-height: 1;
+            margin-bottom: 4px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
 
-.comment-input {
-    flex: 1;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: var(--input-bg);
-    color: var(--text-primary);
-    outline: none;
-    font-size: 13px;
-}
+        .gacha-card .card-label {
+            font-weight: 700;
+            font-size: 0.9rem;
+            background: var(--bg);
+            padding: 2px 14px;
+            border-radius: 30px;
+            color: var(--text);
+        }
 
-.comment-btn {
-    background: #00b4d8;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 13px;
-    white-space: nowrap;
-}
+        /* 등급별 스타일 */
+        .gacha-card.star-1 {
+            border-color: var(--badge-1);
+            background: linear-gradient(145deg, var(--card-bg), #e8e8f0);
+        }
+        .gacha-card.star-1 .star-badge {
+            color: var(--badge-1);
+        }
 
-.comment-btn:hover {
-    background: #0096c7;
-}
+        .gacha-card.star-2 {
+            border-color: var(--badge-2);
+            background: linear-gradient(145deg, var(--card-bg), #d4f0d4);
+        }
+        .gacha-card.star-2 .star-badge {
+            color: var(--badge-2);
+        }
 
-.comment-list {
-    max-height: 180px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
+        .gacha-card.star-3 {
+            border-color: var(--badge-3);
+            background: linear-gradient(145deg, var(--card-bg), #d4e4ff);
+        }
+        .gacha-card.star-3 .star-badge {
+            color: var(--badge-3);
+        }
 
-.comment-item {
-    background: var(--comment-bg);
-    padding: 10px 12px;
-    border-radius: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 13px;
-    color: var(--text-primary);
-}
+        .gacha-card.star-4 {
+            border-color: var(--badge-4);
+            background: linear-gradient(145deg, var(--card-bg), #ecd4ff);
+        }
+        .gacha-card.star-4 .star-badge {
+            color: var(--badge-4);
+        }
 
-.comment-item span {
-    word-break: break-all;
-    padding-right: 8px;
-}
+        /* 5성 전용: 화려한 골드/레인보우 */
+        .gacha-card.star-5 {
+            border-color: #ffb347;
+            background: linear-gradient(135deg, #fff7e0, #ffefc0, #ffe4a0);
+            box-shadow: 0 0 30px rgba(255, 180, 50, 0.5), 0 0 60px rgba(255, 200, 100, 0.2);
+            animation: glowPulse 1.6s infinite alternate;
+        }
+        .gacha-card.star-5 .star-badge {
+            color: #e67e22;
+            text-shadow: 0 0 20px rgba(255, 200, 50, 0.8);
+        }
+        .gacha-card.star-5 .card-label {
+            background: #ffd966;
+            color: #3d2b1a;
+            font-weight: 800;
+        }
 
-.loading-text {
-    font-size: 12px;
-    color: var(--text-secondary);
-    text-align: center;
-    padding: 10px 0;
-}
-</style>
+        @keyframes glowPulse {
+            0% {
+                box-shadow: 0 0 20px rgba(255, 180, 50, 0.3), 0 0 40px rgba(255, 200, 100, 0.1);
+            }
+            100% {
+                box-shadow: 0 0 40px rgba(255, 180, 50, 0.7), 0 0 80px rgba(255, 200, 100, 0.3);
+            }
+        }
 
+        /* ========== 결과 모아보기 (히스토리) ========== */
+        .history-area {
+            background: var(--card-bg);
+            border-radius: 32px;
+            padding: 20px 18px;
+            box-shadow: 0 8px 32px var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .history-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--subtext);
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-title button {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--subtext);
+            padding: 4px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: 0.2s;
+        }
+        .history-title button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .history-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            max-height: 120px;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+        .history-item {
+            background: var(--bg);
+            border-radius: 30px;
+            padding: 4px 14px 4px 10px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--border);
+            transition: 0.2s;
+        }
+        .history-item .h-star {
+            color: var(--star-color);
+        }
+
+        /* ========== 댓글 영역 ========== */
+        .comment-section {
+            background: var(--card-bg);
+            border-radius: 32px;
+            padding: 22px 20px;
+            box-shadow: 0 8px 32px var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .comment-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .comment-input-area {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+        .comment-input-area input {
+            flex: 1;
+            min-width: 180px;
+            padding: 12px 18px;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+            background: var(--input-bg);
+            color: var(--text);
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .comment-input-area input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(155, 107, 255, 0.15);
+        }
+        .comment-input-area button {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 40px;
+            background: var(--btn-primary);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.25s;
+            white-space: nowrap;
+        }
+        .comment-input-area button:hover {
+            background: var(--btn-hover);
+            transform: scale(1.02);
+        }
+
+        .comment-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .comment-item {
+            background: var(--comment-bg);
+            padding: 12px 16px;
+            border-radius: 20px;
+            border-left: 4px solid var(--accent);
+            font-size: 0.9rem;
+            word-break: break-word;
+            animation: fadeIn 0.3s ease;
+        }
+        .comment-item .comment-name {
+            font-weight: 700;
+            color: var(--accent2);
+            margin-right: 8px;
+        }
+        .comment-item .comment-time {
+            font-size: 0.7rem;
+            color: var(--subtext);
+            float: right;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ========== 파이어베이스 설정 안내 (스크린리더용) ========== */
+        .firebase-guide {
+            margin-top: 16px;
+            padding: 14px 18px;
+            background: var(--bg);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--subtext);
+            border: 1px dashed var(--border);
+            line-height: 1.6;
+        }
+        .firebase-guide code {
+            background: var(--card-bg);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--accent);
+        }
+
+        /* ========== 반응형 ========== */
+        @media (max-width: 500px) {
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+                border-radius: 30px;
+                padding: 16px;
+            }
+            .header-controls {
+                justify-content: center;
+            }
+            .gacha-card {
+                width: 90px;
+                height: 130px;
+            }
+            .gacha-card .star-badge {
+                font-size: 1.4rem;
+            }
+            .btn-gacha {
+                padding: 12px 24px;
+                font-size: 1rem;
+                min-width: 120px;
+            }
+            .result-area {
+                padding: 16px 12px;
+            }
+        }
+
+        /* ========== 스크롤바 커스텀 ========== */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+        }
+    </style>
 </head>
 <body>
 
-<div class="container">
-    <!-- 컨트롤 영역 -->
-    <div class="header-controls">
-        <select class="lang-select" id="langSelect" onchange="changeLanguage(this.value)">
-            <option value="ko">🇰🇷 한국어</option>
-            <option value="en">🇺🇸 English</option>
-            <option value="fr">🇫🇷 Français</option>
-        </select>
-        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+    <!-- ===== 헤더 ===== -->
+    <header class="header">
+        <div class="logo">✦ 가챠 아레나 <span>Gacha</span></div>
+        <div class="header-controls">
+            <select class="lang-select" id="langSelect" aria-label="언어 선택">
+                <option value="ko">🇰🇷 한국어</option>
+                <option value="en">🇬🇧 English</option>
+                <option value="fr">🇫🇷 Français</option>
+            </select>
+            <button class="theme-toggle" id="themeToggle" aria-label="테마 전환">🌙</button>
+        </div>
+    </header>
+
+    <!-- ===== 메인 ===== -->
+    <div class="main-container">
+
+        <!-- 뽑기 버튼 -->
+        <div class="gacha-actions">
+            <button class="btn-gacha" id="pullOnce" data-i18n="pull1">🎴 1회 뽑기</button>
+            <button class="btn-gacha secondary" id="pullTen" data-i18n="pull10">🎴✨ 10회 뽑기</button>
+        </div>
+
+        <!-- 결과 카드 영역 -->
+        <div class="result-area" id="resultArea">
+            <div class="result-title">
+                <span data-i18n="resultTitle">🎲 뽑기 결과</span>
+                <span id="resultCount">0</span>
+            </div>
+            <div class="cards-container" id="cardsContainer">
+                <!-- 카드들이 동적으로 추가됨 -->
+                <div style="color:var(--subtext); font-size:0.9rem; padding:30px 0;" data-i18n="pullPlaceholder">뽑기를 시작해 보세요!</div>
+            </div>
+        </div>
+
+        <!-- 결과 모아보기 (히스토리) -->
+        <div class="history-area">
+            <div class="history-title">
+                <span data-i18n="historyTitle">📜 뽑기 기록</span>
+                <button id="clearHistory" data-i18n="clearHistory">지우기</button>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </div>
+
+        <!-- 댓글 섹션 -->
+        <div class="comment-section" id="commentSection">
+            <h3>💬 <span data-i18n="commentTitle">실시간 댓글</span></h3>
+            <div class="comment-input-area">
+                <input type="text" id="commentName" placeholder="닉네임" data-i18n-placeholder="namePlaceholder" maxlength="12">
+                <input type="text" id="commentInput" placeholder="댓글을 입력하세요..." data-i18n-placeholder="commentPlaceholder" maxlength="200">
+                <button id="commentSubmit" data-i18n="commentSend">전송</button>
+            </div>
+            <div class="comment-list" id="commentList"></div>
+
+            <!-- Firebase 설정 가이드 (실제 사용시 주석 해제 후 config 입력) -->
+            <div class="firebase-guide" id="firebaseGuide">
+                🔧 <strong data-i18n="firebaseGuideTitle">Firebase 연동 가이드</strong><br>
+                <span data-i18n="firebaseGuideText1">1. Firebase Console → 프로젝트 생성 → Realtime Database 만들기</span><br>
+                <span data-i18n="firebaseGuideText2">2. 보안 규칙을 테스트 모드로 설정</span><br>
+                <span data-i18n="firebaseGuideText3">3. 아래 코드의 <code>firebaseConfig</code>에 자신의 프로젝트 설정을 붙여넣으세요.</span><br>
+                <span data-i18n="firebaseGuideText4">4. 그럼 댓글이 모든 접속자와 실시간 공유됩니다!</span>
+            </div>
+        </div>
     </div>
 
-    <h1 id="title">🍀 오늘의 기운 좋은 번호</h1>
-    <p id="subTitle">버튼을 눌러 오늘의 행운 번호를 받아보세요!</p>
-
-    <button class="gen-btn" id="genBtn" onclick="generate()">번호 추천받기</button>
-
-    <div id="numbers"></div>
-    <div id="fortune"></div>
-
-    <hr>
-
-    <!-- 온라인 공유 댓글 영역 -->
-    <div class="comment-section">
-        <h3 id="commentHeader">💬 행운의 한마디 (댓글)</h3>
-        <div class="comment-form">
-            <input type="text" id="commentInput" class="comment-input" placeholder="오늘의 다짐이나 소원을 적어보세요..." onkeyup="if(event.key==='Enter') addComment()">
-            <button class="comment-btn" id="commentBtn" onclick="addComment()">등록</button>
-        </div>
-        <div class="comment-list" id="commentList">
-            <div class="loading-text">댓글을 불러오는 중...</div>
-        </div>
-    </div>
-</div>
-
-<script>
-// 다국어 설정
-const i18n = {
-    ko: {
-        title: "🍀 오늘의 기운 좋은 번호",
-        subTitle: "버튼을 눌러 오늘의 행운 번호를 받아보세요!",
-        genBtn: "번호 추천받기",
-        commentHeader: "💬 행운의 한마디 (댓글)",
-        commentPlaceholder: "오늘의 다짐이나 소원을 적어보세요...",
-        commentBtn: "등록",
-        fortunes: [
-            "✨ 오늘은 새로운 도전이 좋은 결과를 가져올 수 있어요.",
-            "🍀 뜻밖의 행운이 찾아올 가능성이 있습니다.",
-            "💰 금전운이 상승하는 하루입니다.",
-            "❤️ 좋은 인연이나 반가운 소식을 기대해보세요.",
-            "🌈 꾸준히 노력한 일이 결실을 맺을 수 있습니다.",
-            "⭐ 자신감을 가지면 좋은 기회가 찾아옵니다.",
-            "☀️ 긍정적인 마음이 행운을 끌어당깁니다.",
-            "🎉 오늘은 웃을 일이 생길 가능성이 높아요!"
-        ]
-    },
-    en: {
-        title: "🍀 Lucky Numbers for Today",
-        subTitle: "Click the button to get your lucky numbers!",
-        genBtn: "Get Numbers",
-        commentHeader: "💬 Lucky Comments",
-        commentPlaceholder: "Write a wish or goal for today...",
-        commentBtn: "Post",
-        fortunes: [
-            "✨ Taking on a new challenge today could bring great results.",
-            "🍀 Unexpected good fortune might come your way.",
-            "💰 Your financial luck is on the rise today.",
-            "❤️ Look forward to good connections or welcome news.",
-            "🌈 Consistent effort will soon bear fruit.",
-            "⭐ Have confidence, and great opportunities will present themselves.",
-            "☀️ A positive mindset attracts good luck.",
-            "🎉 High chance of having something to smile about today!"
-        ]
-    },
-    fr: {
-        title: "🍀 Vos Numéros Chance du Jour",
-        subTitle: "Cliquez sur le bouton pour recevoir vos numéros de chance !",
-        genBtn: "Obtenir les numéros",
-        commentHeader: "💬 Commentaires de Chance",
-        commentPlaceholder: "Écrivez un vœu ou un objectif pour aujourd'hui...",
-        commentBtn: "Publier",
-        fortunes: [
-            "✨ Relever un nouveau défi aujourd'hui pourrait apporter de grands résultats.",
-            "🍀 Une bonne fortune inattendue pourrait croiser votre chemin.",
-            "💰 Votre chance financière est en hausse aujourd'hui.",
-            "❤️ Attendez-vous à de belles rencontres ou à de bonnes nouvelles.",
-            "🌈 Des efforts constants porteront bientôt leurs fruits.",
-            "⭐ Ayez confiance en vous, de grandes opportunités se présenteront.",
-            "☀️ Un état d'esprit positif attire la bonne fortune.",
-            "🎉 De fortes chances d'avoir une raison de sourire aujourd'hui !"
-        ]
-    }
-};
-
-const colors = ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93", "#ff7f50"];
-let currentLang = "ko";
-
-// 서버 기반 공용 댓글 데이터 저장소 (JSONBin API 이용)
-const API_URL = "https://api.jsonbin.io/v3/b/660000000000000000000000"; // 퍼블릭 엔드포인트
-const BIN_ID = "6603a1151fe32657e88383a1"; // 온라인 저장소 ID
-const ACCESS_KEY = "$2a$10$w6P7M5rZ5HhM4eKqS3oR4uG/E.Z6mH1hA8B.L2tY9O7E0XyL2rW3a"; // 공용 키
-
-function changeLanguage(lang) {
-    currentLang = lang;
-    localStorage.setItem("lang", lang);
-
-    const t = i18n[lang];
-    document.getElementById("title").innerText = t.title;
-    document.getElementById("subTitle").innerText = t.subTitle;
-    document.getElementById("genBtn").innerText = t.genBtn;
-    document.getElementById("commentHeader").innerText = t.commentHeader;
-    document.getElementById("commentInput").placeholder = t.commentPlaceholder;
-    document.getElementById("commentBtn").innerText = t.commentBtn;
-    document.getElementById("langSelect").value = lang;
-
-    const fortuneEl = document.getElementById("fortune");
-    if (fortuneEl.innerText) {
-        const randomIndex = Math.floor(Math.random() * t.fortunes.length);
-        fortuneEl.innerText = t.fortunes[randomIndex];
-    }
-}
-
-function initLanguage() {
-    const savedLang = localStorage.getItem("lang") || "ko";
-    changeLanguage(savedLang);
-}
-
-function generate(){
-    let nums = [];
-    while(nums.length < 6){
-        let n = Math.floor(Math.random() * 45) + 1;
-        if(!nums.includes(n)){
-            nums.push(n);
-        }
-    }
-    nums.sort((a,b) => a - b);
-
-    const box = document.getElementById("numbers");
-    box.innerHTML = "";
-
-    nums.forEach((num, index) => {
-        const div = document.createElement("div");
-        div.className = "ball";
-        div.style.background = colors[index];
-        div.innerText = num;
-        box.appendChild(div);
-    });
-
-    const currentFortunes = i18n[currentLang].fortunes;
-    const msg = currentFortunes[Math.floor(Math.random() * currentFortunes.length)];
-    document.getElementById("fortune").innerText = msg;
-}
-
-function initTheme() {
-    const savedTheme = localStorage.getItem("theme") || "light";
-    document.documentElement.setAttribute("data-theme", savedTheme);
-    document.getElementById("themeBtn").innerText = savedTheme === "dark" ? "☀️" : "🌙";
-}
-
-function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute("data-theme");
-    const newTheme = currentTheme === "dark" ? "light" : "dark";
-    
-    document.documentElement.setAttribute("data-theme", newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.getElementById("themeBtn").innerText = newTheme === "dark" ? "☀️" : "🌙";
-}
-
-// ----------------------------------------------------
-// 서버 연동 공용 댓글 기능 (온라인 실시간 연동)
-// ----------------------------------------------------
-let currentComments = [];
-
-async function loadComments() {
-    const listEl = document.getElementById("commentList");
-    try {
-        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-            headers: { "X-Access-Key": ACCESS_KEY }
-        });
-        const data = await res.json();
-        currentComments = data.record.comments || [];
-        renderComments();
-    } catch (e) {
-        // 서버 연결 실패시 로컬스토리지 백업 사용
-        currentComments = JSON.parse(localStorage.getItem("lottoComments_backup") || "[]");
-        renderComments();
-    }
-}
-
-function renderComments() {
-    const listEl = document.getElementById("commentList");
-    listEl.innerHTML = "";
-
-    if (currentComments.length === 0) {
-        listEl.innerHTML = `<div class="loading-text">첫 번째 댓글을 남겨보세요!</div>`;
-        return;
-    }
-
-    currentComments.forEach((commentText) => {
-        const item = document.createElement("div");
-        item.className = "comment-item";
-        item.innerHTML = `<span>${escapeHtml(commentText)}</span>`;
-        listEl.appendChild(item);
-    });
-}
-
-async function addComment() {
-    const input = document.getElementById("commentInput");
-    const text = input.value.trim();
-
-    if (!text) return;
-
-    input.value = "";
-    currentComments.unshift(text); // 최신 댓글이 위에 오도록 추가
-    renderComments();
-
-    // 로컬 백업
-    localStorage.setItem("lottoComments_backup", JSON.stringify(currentComments));
-
-    // 온라인 서버 업로드
-    try {
-        await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Access-Key": ACCESS_KEY
+    <script>
+        // ================================================================
+        //  1. 다국어 (i18n)
+        // ================================================================
+        const i18n = {
+            ko: {
+                pull1: '🎴 1회 뽑기',
+                pull10: '🎴✨ 10회 뽑기',
+                resultTitle: '🎲 뽑기 결과',
+                pullPlaceholder: '뽑기를 시작해 보세요!',
+                historyTitle: '📜 뽑기 기록',
+                clearHistory: '지우기',
+                commentTitle: '실시간 댓글',
+                namePlaceholder: '닉네임',
+                commentPlaceholder: '댓글을 입력하세요...',
+                commentSend: '전송',
+                firebaseGuideTitle: 'Firebase 연동 가이드',
+                firebaseGuideText1: '1. Firebase Console → 프로젝트 생성 → Realtime Database 만들기',
+                firebaseGuideText2: '2. 보안 규칙을 테스트 모드로 설정',
+                firebaseGuideText3: '3. 아래 코드의 firebaseConfig에 자신의 프로젝트 설정을 붙여넣으세요.',
+                firebaseGuideText4: '4. 그럼 댓글이 모든 접속자와 실시간 공유됩니다!',
+                star: '성',
+                historyPrefix: '뽑기'
             },
-            body: JSON.stringify({ comments: currentComments })
+            en: {
+                pull1: '🎴 Pull 1x',
+                pull10: '🎴✨ Pull 10x',
+                resultTitle: '🎲 Result',
+                pullPlaceholder: 'Start pulling!',
+                historyTitle: '📜 Pull History',
+                clearHistory: 'Clear',
+                commentTitle: 'Live Comments',
+                namePlaceholder: 'Nickname',
+                commentPlaceholder: 'Write a comment...',
+                commentSend: 'Send',
+                firebaseGuideTitle: 'Firebase Setup Guide',
+                firebaseGuideText1: '1. Firebase Console → Create Project → Realtime Database',
+                firebaseGuideText2: '2. Set security rules to test mode',
+                firebaseGuideText3: '3. Paste your project config into firebaseConfig below.',
+                firebaseGuideText4: '4. Comments will be shared in real-time!',
+                star: '★',
+                historyPrefix: 'Pull'
+            },
+            fr: {
+                pull1: '🎴 Tirage 1x',
+                pull10: '🎴✨ Tirage 10x',
+                resultTitle: '🎲 Résultat',
+                pullPlaceholder: 'Commencez à tirer!',
+                historyTitle: '📜 Historique',
+                clearHistory: 'Effacer',
+                commentTitle: 'Commentaires en direct',
+                namePlaceholder: 'Pseudo',
+                commentPlaceholder: 'Écrivez un commentaire...',
+                commentSend: 'Envoyer',
+                firebaseGuideTitle: 'Guide Firebase',
+                firebaseGuideText1: '1. Firebase Console → Créer un projet → Realtime Database',
+                firebaseGuideText2: '2. Définir les règles en mode test',
+                firebaseGuideText3: '3. Collez votre config Firebase dans firebaseConfig ci-dessous.',
+                firebaseGuideText4: '4. Les commentaires seront partagés en temps réel!',
+                star: '★',
+                historyPrefix: 'Tirage'
+            }
+        };
+
+        let currentLang = 'ko';
+
+        function applyLanguage(lang) {
+            currentLang = lang;
+            const dict = i18n[lang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.dataset.i18n;
+                if (dict[key]) el.textContent = dict[key];
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.dataset.i18nPlaceholder;
+                if (dict[key]) el.placeholder = dict[key];
+            });
+            // 히스토리 아이템 다시 그리기
+            renderHistory();
+            // 댓글 타임스탬프 등은 그대로 유지
+        }
+
+        document.getElementById('langSelect').addEventListener('change', (e) => {
+            applyLanguage(e.target.value);
         });
-    } catch (e) {
-        console.error("서버 저장 오류:", e);
-    }
-}
 
-function escapeHtml(text) {
-    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
+        // ================================================================
+        //  2. 테마 (다크/라이트)
+        // ================================================================
+        const themeToggle = document.getElementById('themeToggle');
+        let darkMode = false;
 
-// 페이지 로드 시 초기화 실행
-initTheme();
-initLanguage();
-loadComments();
-</script>
+        function toggleTheme() {
+            darkMode = !darkMode;
+            document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+            themeToggle.textContent = darkMode ? '☀️' : '🌙';
+            localStorage.setItem('gachaTheme', darkMode ? 'dark' : 'light');
+        }
+
+        // 저장된 테마 불러오기
+        const savedTheme = localStorage.getItem('gachaTheme');
+        if (savedTheme === 'dark') {
+            darkMode = true;
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '☀️';
+        }
+
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // ================================================================
+        //  3. 가챠 로직
+        // ================================================================
+        const STAR_EMOJIS = ['⭐', '⭐⭐', '⭐⭐⭐', '⭐⭐⭐⭐', '⭐⭐⭐⭐⭐'];
+        const STAR_NAMES = ['1성', '2성', '3성', '4성', '5성'];
+
+        // 확률: 1성 40%, 2성 30%, 3성 20%, 4성 9%, 5성 1%
+        function pullRarity() {
+            const r = Math.random() * 100;
+            if (r < 40) return 0; // 1성
+            if (r < 70) return 1; // 2성
+            if (r < 90) return 2; // 3성
+            if (r < 99) return 3; // 4성
+            return 4; // 5성
+        }
+
+        function generateCard(rarity) {
+            return {
+                rarity: rarity,
+                stars: STAR_EMOJIS[rarity],
+                label: STAR_NAMES[rarity],
+                id: Date.now() + Math.random()
+            };
+        }
+
+        // ================================================================
+        //  4. 카드 렌더링 & 애니메이션
+        // ================================================================
+        const cardsContainer = document.getElementById('cardsContainer');
+        const resultCount = document.getElementById('resultCount');
+
+        function renderCards(cards, animate = true) {
+            if (cards.length === 0) {
+                cardsContainer.innerHTML =
+                    `<div style="color:var(--subtext); font-size:0.9rem; padding:30px 0;" data-i18n="pullPlaceholder">${i18n[currentLang].pullPlaceholder}</div>`;
+                resultCount.textContent = '0';
+                return;
+            }
+
+            let html = '';
+            cards.forEach(c => {
+                const rarityClass = `star-${c.rarity + 1}`;
+                html += `
+                        <div class="gacha-card ${rarityClass} ${animate ? 'flipping' : ''}" data-id="${c.id}">
+                            <div class="star-badge">${c.stars}</div>
+                            <div class="card-label">${c.label}</div>
+                        </div>
+                    `;
+            });
+            cardsContainer.innerHTML = html;
+            resultCount.textContent = cards.length;
+
+            // 5성 등장 시 confetti 효과
+            const hasFive = cards.some(c => c.rarity === 4);
+            if (hasFive) {
+                launchConfetti();
+            }
+
+            // 애니메이션 후 flipping 클래스 제거 (재사용 가능하게)
+            if (animate) {
+                setTimeout(() => {
+                    document.querySelectorAll('.gacha-card.flipping').forEach(el => el.classList.remove('flipping'));
+                }, 800);
+            }
+        }
+
+        // ================================================================
+        //  5. Confetti (5성 전용)
+        // ================================================================
+        function launchConfetti() {
+            // canvas-confetti 라이브러리 사용
+            const duration = 2500;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 4,
+                    angle: 60,
+                    spread: 70,
+                    origin: { x: 0.2, y: 0.6 },
+                    colors: ['#ffd700', '#ff6b6b', '#48dbfb', '#ff9ff3', '#feca57']
+                });
+                confetti({
+                    particleCount: 4,
+                    angle: 120,
+                    spread: 70,
+                    origin: { x: 0.8, y: 0.6 },
+                    colors: ['#ffd700', '#ff6b6b', '#48dbfb', '#ff9ff3', '#feca57']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            })();
+
+            // 추가로 별도 burst
+            setTimeout(() => {
+                confetti({
+                    particleCount: 60,
+                    spread: 100,
+                    origin: { x: 0.5, y: 0.4 },
+                    colors: ['#ffd700', '#fff']
+                });
+            }, 300);
+        }
+
+        // ================================================================
+        //  6. 히스토리 (localStorage)
+        // ================================================================
+        let history = [];
+
+        function loadHistory() {
+            try {
+                const saved = localStorage.getItem('gachaHistory');
+                if (saved) history = JSON.parse(saved);
+            } catch (e) { history = []; }
+        }
+
+        function saveHistory() {
+            localStorage.setItem('gachaHistory', JSON.stringify(history));
+        }
+
+        function addToHistory(cards) {
+            const summary = cards.map(c => c.rarity + 1);
+            history.push({ time: Date.now(), summary });
+            saveHistory();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if (history.length === 0) {
+                list.innerHTML = `<span style="color:var(--subtext); font-size:0.85rem;">기록이 없습니다.</span>`;
+                return;
+            }
+            let html = '';
+            // 최신순
+            for (let i = history.length - 1; i >= 0; i--) {
+                const h = history[i];
+                const stars = h.summary.map(s => '⭐'.repeat(s)).join(' ');
+                const time = new Date(h.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                html += `<div class="history-item"><span class="h-star">${stars}</span> <span style="color:var(--subtext);font-size:0.7rem;">${time}</span></div>`;
+            }
+            list.innerHTML = html;
+        }
+
+        document.getElementById('clearHistory').addEventListener('click', () => {
+            history = [];
+            saveHistory();
+            renderHistory();
+        });
+
+        // ================================================================
+        //  7. 뽑기 실행
+        // ================================================================
+        let currentCards = [];
+
+        function performPull(count) {
+            const cards = [];
+            for (let i = 0; i < count; i++) {
+                cards.push(generateCard(pullRarity()));
+            }
+            currentCards = cards;
+            renderCards(cards, true);
+            addToHistory(cards);
+        }
+
+        document.getElementById('pullOnce').addEventListener('click', () => performPull(1));
+        document.getElementById('pullTen').addEventListener('click', () => performPull(10));
+
+        // 초기 로드 시 히스토리 렌더
+        loadHistory();
+        renderHistory();
+
+        // ================================================================
+        //  8. 댓글 (Firebase Realtime Database)
+        // ================================================================
+        // ★★★ Firebase 설정 ★★★
+        // 아래 firebaseConfig를 자신의 프로젝트 정보로 변경하세요.
+        // Firebase Console → 프로젝트 설정 → 웹 앱 → Firebase SDK snippet → config
+        // ================================================================
+
+        // 🔽🔽🔽 여기에 Firebase config를 붙여넣으세요 🔽🔽🔽
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        // 🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼🔼
+
+        let firebaseInitialized = false;
+        let db = null;
+
+        function initFirebase() {
+            if (firebaseInitialized) return;
+            // config가 기본값이 아니면 초기화
+            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+                try {
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.database();
+                    firebaseInitialized = true;
+                    console.log('✅ Firebase initialized');
+                    loadComments();
+                    listenComments();
+                } catch (e) {
+                    console.warn('⚠️ Firebase init failed:', e);
+                }
+            } else {
+                console.warn('⚠️ Firebase config not set. Comments will be local only.');
+                // 로컬 데모용 더미
+                loadLocalComments();
+            }
+        }
+
+        // ===== 로컬 폴백 (Firebase 미설정시) =====
+        let localComments = [];
+
+        function loadLocalComments() {
+            try {
+                const saved = localStorage.getItem('gachaLocalComments');
+                if (saved) localComments = JSON.parse(saved);
+            } catch (e) { localComments = []; }
+            renderComments(localComments);
+        }
+
+        function saveLocalComments() {
+            localStorage.setItem('gachaLocalComments', JSON.stringify(localComments));
+        }
+
+        // ===== Firebase 댓글 =====
+        function loadComments() {
+            if (!db) return;
+            db.ref('comments').once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    const comments = Object.values(data).sort((a, b) => a.timestamp - b.timestamp);
+                    renderComments(comments);
+                } else {
+                    renderComments([]);
+                }
+            }).catch(err => console.warn(err));
+        }
+
+        function listenComments() {
+            if (!db) return;
+            db.ref('comments').on('value', snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    const comments = Object.values(data).sort((a, b) => a.timestamp - b.timestamp);
+                    renderComments(comments);
+                } else {
+                    renderComments([]);
+                }
+            });
+        }
+
+        function pushComment(name, text) {
+            if (!db) {
+                // 로컬 저장
+                const comment = {
+                    name: name || '익명',
+                    text: text,
+                    timestamp: Date.now()
+                };
+                localComments.push(comment);
+                saveLocalComments();
+                renderComments(localComments);
+                return;
+            }
+            const newRef = db.ref('comments').push();
+            newRef.set({
+                name: name || '익명',
+                text: text,
+                timestamp: Date.now()
+            }).catch(err => console.warn(err));
+        }
+
+        // ===== 댓글 렌더링 =====
+        function renderComments(comments) {
+            const list = document.getElementById('commentList');
+            if (!comments || comments.length === 0) {
+                list.innerHTML = `<div style="color:var(--subtext); padding:12px 0;">댓글이 없습니다. 첫 댓글을 남겨보세요!</div>`;
+                return;
+            }
+            let html = '';
+            comments.forEach(c => {
+                const time = new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                html += `
+                        <div class="comment-item">
+                            <span class="comment-name">${escapeHtml(c.name)}</span>
+                            <span>${escapeHtml(c.text)}</span>
+                            <span class="comment-time">${time}</span>
+                        </div>
+                    `;
+            });
+            list.innerHTML = html;
+            list.scrollTop = list.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ===== 댓글 입력 =====
+        document.getElementById('commentSubmit').addEventListener('click', () => {
+            const nameInput = document.getElementById('commentName');
+            const textInput = document.getElementById('commentInput');
+            const name = nameInput.value.trim() || '익명';
+            const text = textInput.value.trim();
+            if (!text) return;
+            pushComment(name, text);
+            textInput.value = '';
+            // 이름은 유지
+        });
+
+        document.getElementById('commentInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('commentSubmit').click();
+            }
+        });
+
+        // Firebase 초기화 (페이지 로드시)
+        setTimeout(initFirebase, 500);
+
+        // ================================================================
+        //  9. 초기 다국어 적용
+        // ================================================================
+        applyLanguage(currentLang);
+
+        // 히스토리 다시 렌더 (언어 반영)
+        renderHistory();
+
+        console.log('✨ Gacha Arena loaded!');
+        console.log('💡 Firebase 댓글을 사용하려면 firebaseConfig를 설정하세요.');
+    </script>
 
 </body>
 </html>
